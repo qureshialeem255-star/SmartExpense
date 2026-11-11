@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Smart Expense Management{% endblock %} | AI Finance Tracker</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  {% if current_user.is_authenticated %}
+  <!-- Sidebar Navigation -->
+  <nav id="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="bi bi-wallet2"></i>
+      </div>
+      <div>
+        <div class="brand-text">SmartExpense</div>
+        <small class="text-muted" style="font-size: 0.75rem;">AI Financial Manager</small>
+      </div>
+    </div>
+
+    <ul class="nav-links">
+      <li class="nav-item">
+        <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+          <i class="bi bi-grid-1x2-fill"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('transactions.index') }}" class="nav-link {% if request.endpoint == 'transactions.index' %}active{% endif %}">
+          <i class="bi bi-arrow-left-right"></i>
+          <span>Transactions</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('transactions.add') }}" class="nav-link {% if request.endpoint == 'transactions.add' %}active{% endif %}">
+          <i class="bi bi-plus-circle-fill"></i>
+          <span>Add Transaction</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('budgets.index') }}" class="nav-link {% if request.endpoint == 'budgets.index' %}active{% endif %}">
+          <i class="bi bi-pie-chart-fill"></i>
+          <span>Budgets</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('reports.index') }}" class="nav-link {% if request.endpoint == 'reports.index' %}active{% endif %}">
+          <i class="bi bi-bar-chart-line-fill"></i>
+          <span>Reports & Analytics</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('insights.index') }}" class="nav-link {% if request.endpoint == 'insights.index' %}active{% endif %}">
+          <i class="bi bi-stars"></i>
+          <span>AI Insights</span>
+          <span class="ai-badge">AI</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('savings.index') }}" class="nav-link {% if request.endpoint == 'savings.index' %}active{% endif %}">
+          <i class="bi bi-piggy-bank-fill"></i>
+          <span>Savings Goals</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('categories.index') }}" class="nav-link {% if request.endpoint == 'categories.index' %}active{% endif %}">
+          <i class="bi bi-tags-fill"></i>
+          <span>Categories</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a href="{{ url_for('auth.profile') }}" class="nav-link {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+          <i class="bi bi-person-gear"></i>
+          <span>Settings</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="user-footer">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2 overflow-hidden">
+          <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-weight: 600;">
+            {{ current_user.name[0] | upper }}
+          </div>
+          <div class="overflow-hidden">
+            <div class="fw-bold text-truncate" style="font-size: 0.88rem;">{{ current_user.name }}</div>
+            <div class="text-muted text-truncate" style="font-size: 0.72rem;">{{ current_user.email }}</div>
+          </div>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="text-danger" title="Logout">
+          <i class="bi bi-box-arrow-right fs-5"></i>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Wrapper -->
+  <div id="main-wrapper">
+    <!-- Top Navbar -->
+    <header class="top-navbar">
+      <div class="d-flex align-items-center gap-3">
+        <button id="sidebar-toggle" class="btn btn-outline-secondary btn-sm d-lg-none">
+          <i class="bi bi-list fs-5"></i>
+        </button>
+        <div>
+          <h6 class="m-0 fw-bold text-dark">Welcome back, {{ current_user.name.split(' ')[0] }} 👋</h6>
+          <small class="text-muted">Smart Expense Management & AI Advisory</small>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('transactions.add') }}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-2">
+          <i class="bi bi-plus-lg"></i>
+          <span class="d-none d-sm-inline">New Transaction</span>
+        </a>
+        <div class="dropdown">
+          <button class="btn btn-light rounded-circle p-2 border" data-bs-toggle="dropdown">
+            <i class="bi bi-bell"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" style="width: 280px;">
+            <li class="dropdown-header fw-bold">AI Notifications</li>
+            <li><hr class="dropdown-divider"></li>
+            <li class="px-3 py-2 small text-muted">
+              <i class="bi bi-stars text-primary me-1"></i> AI Spending Analyzer is active on your account.
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-center small text-primary fw-bold" href="{{ url_for('insights.index') }}">View All Insights</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- Body Area -->
+    <main class="content-body">
+      <!-- Flash Alert Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+              {% if category == 'success' %}
+                <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+              {% elif category == 'danger' %}
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+              {% elif category == 'warning' %}
+                <i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>
+              {% else %}
+                <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+              {% endif %}
+              <div>{{ message }}</div>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="p-3 text-center text-muted small border-top bg-white">
+      <div>Smart Expense Management System &copy; {{ current_year }} &middot; AI-Powered College Project</div>
+    </footer>
+  </div>
+
+  {% else %}
+  <!-- Unauthenticated (Login / Register) Layout -->
+  <div class="container-fluid p-0 d-flex flex-column min-vh-100">
+    <div class="flex-grow-1">
+      <!-- Flash Alert Messages -->
+      <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+      {% block auth_content %}{% endblock %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Bootstrap 5 Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- Main JS -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
+

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Transaction{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="mb-4">
+    <a href="{{ url_for('transactions.index') }}" class="text-decoration-none small text-muted">
+      <i class="bi bi-arrow-left me-1"></i> Back to Transactions
+    </a>
+    <h3 class="fw-bold text-dark mt-2 m-0">Edit Transaction #{{ transaction.id }}</h3>
+    <p class="text-muted small m-0">Modify transaction details and re-categorize</p>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8 col-xl-7">
+      <div class="card-custom">
+        <div class="card-body-custom p-4">
+          <form method="POST" action="{{ url_for('transactions.edit', id=transaction.id) }}" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-4">
+              <label class="form-label-custom">Transaction Type</label>
+              {{ form.type(class="form-select form-select-custom", id="transaction-type") }}
+              {% for error in form.type.errors %}
+                <div class="text-danger small mt-1">{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label-custom" for="transaction-description">Description</label>
+              {{ form.description(class="form-control form-control-custom" + (" is-invalid" if form.description.errors else ""), id="transaction-description") }}
+              {% for error in form.description.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+
+              <!-- AI Suggestion Box -->
+              <div id="ai-suggestion-box" class="alert alert-info mt-2 py-2 px-3 rounded-3 d-flex align-items-center justify-content-between d-none shadow-sm">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-stars text-primary fs-5"></i>
+                  <span class="small">AI Suggests: <strong id="ai-suggested-category" class="text-dark">Food</strong></span>
+                </div>
+                <button type="button" id="ai-apply-btn" class="btn btn-primary btn-sm py-1 px-3">Apply</button>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label-custom" for="amount">Amount (₹ INR)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 fw-bold">₹</span>
+                {{ form.amount(class="form-control form-control-custom border-start-0" + (" is-invalid" if form.amount.errors else ""), id="amount", step="0.01") }}
+                {% for error in form.amount.errors %}
+                  <div class="invalid-feedback">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label-custom" for="transaction-category">Category</label>
+              {{ form.category_id(class="form-select form-select-custom" + (" is-invalid" if form.category_id.errors else ""), id="transaction-category") }}
+              {% for error in form.category_id.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label-custom" for="date">Date</label>
+              {{ form.date(class="form-control form-control-custom" + (" is-invalid" if form.date.errors else ""), id="date") }}
+              {% for error in form.date.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <button type="submit" class="btn btn-primary-custom px-4">Update Transaction</button>
+              <a href="{{ url_for('transactions.index') }}" class="btn btn-light border px-4">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}AI Insights & Financial Advisory{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h3 class="fw-bold text-dark m-0">AI Financial Advisory</h3>
+        <span class="badge bg-primary text-uppercase" style="font-size: 0.72rem;">Module 6 Showcase</span>
+      </div>
+      <p class="text-muted small m-0">Automated spending analysis, anomaly detection, predictive forecasting, and
+        actionable advice</p>
+    </div>
+    <form method="POST" action="{{ url_for('insights.refresh') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary-custom btn-sm">
+        <i class="bi bi-arrow-repeat me-1"></i> Refresh AI Analytics
+      </button>
+    </form>
+  </div>
+
+  <!-- Financial Health Score & Top Advisory Row -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-4">
+      <div class="card-custom h-100 text-center p-4 d-flex flex-column justify-content-center">
+        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">Financial Health Index</small>
+
+        <div class="my-3 position-relative d-inline-block">
+          <div class="display-3 fw-bolder text-{{ health_color }}">{{ health_score }}</div>
+          <small class="text-muted">/ 100</small>
+        </div>
+
+        <div class="mb-3">
+          <span
+            class="badge bg-{{ health_color }}-subtle text-{{ health_color }} border border-{{ health_color }}-subtle px-3 py-1 fs-6">
+            {{ health_status }}
+          </span>
+        </div>
+
+        <p class="text-muted small mb-0">
+          Calculated based on your savings rate ({{ spending_analysis.savings_rate }}%), budget utilization discipline,
+          and month-over-month cash flow volatility.
+        </p>
+      </div>
+    </div>
+
+    <!-- AI Feature 3: Expense Prediction Forecast Card -->
+    <div class="col-lg-8">
+      <div class="card-custom h-100">
+        <div class="card-header-custom">
+          <div>
+            <h5><i class="bi bi-graph-up-arrow text-primary me-2"></i>AI Expense Forecast (Upcoming Month)</h5>
+            <small class="text-muted">Module 6 - AI Feature 3: Predictive Analytics</small>
+          </div>
+          <span class="badge bg-info-subtle text-info border border-info-subtle">{{ prediction.method }}</span>
+        </div>
+        <div class="card-body-custom">
+          {% if prediction.has_sufficient_data %}
+          <div class="row align-items-center mb-3">
+            <div class="col-md-5">
+              <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.72rem;">Projected for {{
+                prediction.next_month_label }}</small>
+              <div class="display-6 fw-bold text-dark">{{ prediction.predicted_total | format_currency }}</div>
+              <div class="mt-2">
+                <span
+                  class="badge {% if prediction.trend_direction == 'Decreasing' %}bg-success{% elif prediction.trend_direction == 'Increasing' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                  Trend: {{ prediction.trend_direction }} ({{ prediction.trend_percent }}%)
+                </span>
+              </div>
+            </div>
+            <div class="col-md-7">
+              <div class="p-3 bg-light rounded-3 small">
+                <strong>AI Explanation:</strong>
+                <p class="text-secondary m-0 mt-1">{{ prediction.explanation | replace('**', '') }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category-wise Prediction Breakdown -->
+          {% if prediction.category_predictions %}
+          <h6 class="small fw-bold text-dark mt-3 mb-2">Predicted Category Allocations:</h6>
+          <div class="row g-2">
+            {% for cp in prediction.category_predictions[:4] %}
+            <div class="col-sm-6 col-md-3">
+              <div class="p-2 border rounded-2 bg-white">
+                <div class="text-muted small text-truncate">{{ cp.category }}</div>
+                <div class="fw-bold text-dark">{{ cp.predicted_amount | format_currency }}</div>
+                <small class="text-muted" style="font-size: 0.7rem;">{{ cp.percentage }}% of budget</small>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-cpu fs-2 mb-2 d-block"></i>
+            <p class="small">{{ prediction.explanation }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Feature 2: Deep Spending Analysis & Anomaly Detection -->
+  <div class="card-custom mb-4">
+    <div class="card-header-custom">
+      <div>
+        <h5><i class="bi bi-search text-warning me-2"></i>Spending Analysis & Anomaly Detection</h5>
+        <small class="text-muted">Module 6 - AI Feature 2: High spending categories & outlier tracking</small>
+      </div>
+      {% if spending_analysis.top_category %}
+      <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+        Top Drain: {{ spending_analysis.top_category }}
+      </span>
+      {% endif %}
+    </div>
+    <div class="card-body-custom">
+      <!-- Active Insights Grid -->
+      <div class="row g-3 mb-4">
+        {% if spending_analysis.insights %}
+        {% for ins in spending_analysis.insights %}
+        <div class="col-md-6">
+          <div class="p-3 rounded-3 border-start border-4 border-{{ ins.level }} bg-light">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <h6 class="fw-bold m-0 text-dark">{{ ins.title }}</h6>
+              <span class="badge bg-{{ ins.level }} text-uppercase" style="font-size: 0.65rem;">{{ ins.badge }}</span>
+            </div>
+            <p class="small text-secondary m-0">{{ ins.message | replace('**', '') }}</p>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="col-12 text-center text-muted py-3">
+          No spending anomalies detected this month.
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Month-over-Month Category Variance -->
+      {% if spending_analysis.category_changes %}
+      <h6 class="fw-bold text-dark mb-3">Month-over-Month Category Changes</h6>
+      <div class="table-responsive">
+        <table class="table table-custom align-middle">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>This Month</th>
+              <th>Last Month</th>
+              <th>Variance Change</th>
+              <th>Insight Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ch in spending_analysis.category_changes %}
+            <tr>
+              <td class="fw-semibold text-dark">{{ ch.category }}</td>
+              <td class="fw-bold">{{ ch.current | format_currency }}</td>
+              <td class="text-muted">{{ ch.previous | format_currency }}</td>
+              <td>
+                {% if ch.change_pct > 0 %}
+                <span class="badge bg-danger-subtle text-danger">+{{ ch.change_pct }}% Increase</span>
+                {% elif ch.change_pct < 0 %} <span class="badge bg-success-subtle text-success">{{ ch.change_pct }}%
+                  Decrease</span>
+                  {% else %}
+                  <span class="badge bg-light text-muted">0% Steady</span>
+                  {% endif %}
+              </td>
+              <td class="small text-muted">
+                {% if ch.change_pct > 25 %}
+                <span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i> Significant spike. Consider
+                  reviewing receipts.</span>
+                {% elif ch.change_pct < -20 %} <span class="text-success"><i class="bi bi-check2-circle me-1"></i>
+                  Successfully decreased spending in this category.</span>
+                  {% else %}
+                  Normal spending range maintained.
+                  {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- AI Feature 4: Smart Budget Suggestions -->
+  <div class="card-custom mb-4">
+    <div class="card-header-custom">
+      <div>
+        <h5><i class="bi bi-lightbulb text-warning me-2"></i>Smart Budget Suggestions & Reallocations</h5>
+        <small class="text-muted">Module 6 - AI Feature 4: Automated financial recommendations</small>
+      </div>
+    </div>
+    <div class="card-body-custom">
+      {% if budget_analysis.suggestions %}
+      <div class="row g-3">
+        {% for sug in budget_analysis.suggestions %}
+        <div class="col-md-6">
+          <div class="card border border-{{ sug.level }}-subtle p-3 h-100 shadow-sm bg-white">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="fw-bold text-dark">{{ sug.title }}</span>
+              <span class="badge bg-{{ sug.level }} text-uppercase" style="font-size: 0.65rem;">{{ sug.badge }}</span>
+            </div>
+            <p class="small text-secondary mb-0">{{ sug.message | replace('**', '') }}</p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="bi bi-shield-check fs-2 text-success d-block mb-2"></i>
+        Your budgets are currently healthy with no urgent reallocation alerts.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Historical AI Insights Log (Stored in SQLite AI Insights Table) -->
+  <div class="card-custom">
+    <div class="card-header-custom">
+      <div>
+        <h5>Historical AI Insights Log</h5>
+        <small class="text-muted">Stored records in database Table 6: AI Insights</small>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-custom align-middle">
+        <thead>
+          <tr>
+            <th>Generated Timestamp</th>
+            <th>Type</th>
+            <th>Generated Insight Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if saved_insights %}
+          {% for record in saved_insights %}
+          <tr>
+            <td class="text-muted small" style="width: 200px;">
+              {{ record.created_at.strftime('%d %b %Y, %I:%M %p') }}
+            </td>
+            <td style="width: 160px;">
+              <span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">
+                {{ record.insight_type.replace('_', ' ') }}
+              </span>
+            </td>
+            <td class="text-secondary small">
+              {{ record.message | replace('**', '') }}
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="3" class="text-center py-4 text-muted">
+              No archived AI insights yet. Click <strong>"Refresh AI Analytics"</strong> above to generate and archive
+              records.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

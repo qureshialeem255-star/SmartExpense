@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Categories{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-dark m-0">Category Management</h3>
+      <p class="text-muted small m-0">System default categories and your personal custom classifications</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Add Custom Category Form -->
+    <div class="col-lg-4">
+      <div class="card-custom">
+        <div class="card-header-custom">
+          <div>
+            <h5>Add Custom Category</h5>
+            <small class="text-muted">Create a personalized tag</small>
+          </div>
+        </div>
+        <div class="card-body-custom">
+          <form method="POST" action="{{ url_for('categories.index') }}">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+              <label class="form-label-custom">Category Name</label>
+              {{ form.name(class="form-control form-control-custom", placeholder="e.g. Gym, Pet Care, Crypto") }}
+              {% for error in form.name.errors %}
+                <div class="text-danger small">{{ error }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label-custom">Type</label>
+              {{ form.type(class="form-select form-select-custom") }}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label-custom">Icon</label>
+              {{ form.icon(class="form-select form-select-custom") }}
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label-custom">Color Accent</label>
+              <div class="d-flex align-items-center gap-2">
+                {{ form.color(class="form-control form-control-custom", type="color", style="width: 60px; height: 38px; padding: 2px;") }}
+                <small class="text-muted">Pick a color for dashboard charts</small>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-custom w-100">
+              <i class="bi bi-plus-circle me-1"></i> Add Category
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories List -->
+    <div class="col-lg-8">
+      <!-- Custom User Categories -->
+      {% if custom_categories %}
+      <div class="card-custom mb-4">
+        <div class="card-header-custom">
+          <h5>Your Custom Categories</h5>
+          <span class="badge bg-primary">{{ custom_categories | length }} custom</span>
+        </div>
+        <div class="card-body-custom p-3">
+          <div class="row g-2">
+            {% for cat in custom_categories %}
+            <div class="col-sm-6">
+              <div class="p-3 border rounded-3 d-flex align-items-center justify-content-between bg-white shadow-sm">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="p-2 rounded-2 text-white" style="background-color: {{ cat.color }};">
+                    <i class="bi {{ cat.icon }} fs-5"></i>
+                  </div>
+                  <div>
+                    <strong class="text-dark d-block">{{ cat.name }}</strong>
+                    <span class="badge {% if cat.type == 'income' %}badge-income{% else %}badge-expense{% endif %}" style="font-size: 0.68rem;">
+                      {{ cat.type | capitalize }}
+                    </span>
+                  </div>
+                </div>
+                <form method="POST" action="{{ url_for('categories.delete', id=cat.id) }}" onsubmit="return confirm('Delete custom category {{ cat.name }}?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-light text-danger border p-1 px-2" title="Delete">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Default Expense Categories -->
+      <div class="card-custom mb-4">
+        <div class="card-header-custom">
+          <h5>Default Expense Categories</h5>
+          <span class="badge bg-light text-secondary border">System Defaults</span>
+        </div>
+        <div class="card-body-custom p-3">
+          <div class="row g-2">
+            {% for cat in default_expense %}
+            <div class="col-sm-6 col-md-4">
+              <div class="p-2 border rounded-2 d-flex align-items-center gap-2 bg-light">
+                <span class="p-2 rounded-circle" style="background-color: {{ cat.color }}; color: white; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                  <i class="bi {{ cat.icon }} small"></i>
+                </span>
+                <span class="fw-semibold text-dark small">{{ cat.name }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Default Income Categories -->
+      <div class="card-custom">
+        <div class="card-header-custom">
+          <h5>Default Income Categories</h5>
+          <span class="badge bg-light text-secondary border">System Defaults</span>
+        </div>
+        <div class="card-body-custom p-3">
+          <div class="row g-2">
+            {% for cat in default_income %}
+            <div class="col-sm-6 col-md-4">
+              <div class="p-2 border rounded-2 d-flex align-items-center gap-2 bg-light">
+                <span class="p-2 rounded-circle" style="background-color: {{ cat.color }}; color: white; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                  <i class="bi {{ cat.icon }} small"></i>
+                </span>
+                <span class="fw-semibold text-dark small">{{ cat.name }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

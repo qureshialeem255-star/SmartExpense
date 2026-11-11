@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Page Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-dark m-0">Financial Dashboard</h3>
+      <p class="text-muted small m-0">Real-time overview of your income, expenses, and AI analytics</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('transactions.add') }}" class="btn btn-primary-custom btn-sm">
+        <i class="bi bi-plus-lg me-1"></i> Add Transaction
+      </a>
+      <a href="{{ url_for('insights.index') }}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-stars me-1"></i> View AI Insights
+      </a>
+    </div>
+  </div>
+
+  <!-- Top Metric Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-balance">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="metric-title">Available Balance</div>
+            <div class="metric-value">{{ available_balance | format_currency }}</div>
+            <div class="metric-subtitle">
+              Lifetime: <span class="text-success fw-bold">+{{ lifetime_income | format_currency }}</span> | <span class="text-danger fw-bold">-{{ lifetime_expense | format_currency }}</span>
+            </div>
+          </div>
+          <div class="metric-icon-wrap">
+            <i class="bi bi-wallet2"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-income">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="metric-title">This Month Income</div>
+            <div class="metric-value text-success">+{{ month_income | format_currency }}</div>
+            <div class="metric-subtitle">Total inflow recorded this month</div>
+          </div>
+          <div class="metric-icon-wrap">
+            <i class="bi bi-arrow-down-left"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-expense">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="metric-title">This Month Expense</div>
+            <div class="metric-value text-danger">-{{ month_expense | format_currency }}</div>
+            <div class="metric-subtitle">
+              {% if spending_summary.top_category %}
+                Top: <strong>{{ spending_summary.top_category }}</strong> ({{ spending_summary.top_category_pct }}%)
+              {% else %}
+                No expenses logged yet
+              {% endif %}
+            </div>
+          </div>
+          <div class="metric-icon-wrap">
+            <i class="bi bi-arrow-up-right"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-savings">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="metric-title">Monthly Net Savings</div>
+            <div class="metric-value {% if month_savings >= 0 %}text-primary{% else %}text-danger{% endif %}">
+              {{ month_savings | format_currency }}
+            </div>
+            <div class="metric-subtitle">
+              <span class="badge {% if spending_summary.savings_rate >= 20 %}bg-success{% elif spending_summary.savings_rate >= 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                {{ spending_summary.savings_rate }}% Savings Rate
+              </span>
+            </div>
+          </div>
+          <div class="metric-icon-wrap">
+            <i class="bi bi-piggy-bank"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Insights Flash Highlights Banner -->
+  {% if combined_insights %}
+  <div class="ai-banner">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-stars me-1"></i> AI Advisory</span>
+        <h6 class="m-0 fw-bold">Live Financial Intelligence & Anomalies</h6>
+      </div>
+      <a href="{{ url_for('insights.index') }}" class="text-white text-decoration-none small opacity-75 hover-opacity-100">
+        Explore Full AI Center &rarr;
+      </a>
+    </div>
+    <div class="row g-3">
+      {% for insight in combined_insights %}
+      <div class="col-md-6">
+        <div class="p-3 rounded-3" style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(4px);">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-{{ insight.level }} text-uppercase" style="font-size: 0.68rem;">{{ insight.badge }}</span>
+            <span class="fw-bold small">{{ insight.title }}</span>
+          </div>
+          <div class="small opacity-90" style="font-size: 0.85rem;">
+            {{ insight.message | replace('**', '') }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Charts Row -->
+  <div class="row g-4 mb-4">
+    <!-- 6-Month Income vs Expense Chart -->
+    <div class="col-lg-8">
+      <div class="card-custom h-100">
+        <div class="card-header-custom">
+          <div>
+            <h5>Income vs Expense Comparison</h5>
+            <small class="text-muted">Last 6 months cash flow comparison</small>
+          </div>
+          <span class="badge bg-light text-secondary border">Monthly Trend</span>
+        </div>
+        <div class="card-body-custom">
+          <div style="height: 300px;">
+            <canvas id="cashFlowChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Expense Breakdown Doughnut -->
+    <div class="col-lg-4">
+      <div class="card-custom h-100">
+        <div class="card-header-custom">
+          <div>
+            <h5>Expense Breakdown</h5>
+            <small class="text-muted">Current month by category</small>
+          </div>
+        </div>
+        <div class="card-body-custom d-flex flex-column justify-content-center">
+          {% if category_data and category_data | sum > 0 %}
+          <div style="height: 240px; position: relative;">
+            <canvas id="categoryChart"></canvas>
+          </div>
+          <div class="text-center mt-3">
+            <small class="text-muted">Total Expense: <strong class="text-dark">{{ month_expense | format_currency }}</strong></small>
+          </div>
+          {% else %}
+          <div class="text-center py-5">
+            <i class="bi bi-pie-chart text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted small mt-2">No expenses recorded for this month yet.</p>
+            <a href="{{ url_for('transactions.add') }}" class="btn btn-outline-primary btn-sm">Add First Expense</a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row: Recent Transactions & Budget Status -->
+  <div class="row g-4">
+    <!-- Recent Transactions Table -->
+    <div class="col-lg-8">
+      <div class="card-custom">
+        <div class="card-header-custom">
+          <div>
+            <h5>Recent Transactions</h5>
+            <small class="text-muted">Latest financial activities</small>
+          </div>
+          <a href="{{ url_for('transactions.index') }}" class="btn btn-outline-secondary btn-sm">View All</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-custom align-middle">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th class="text-end">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_transactions %}
+                {% for tx in recent_transactions %}
+                <tr>
+                  <td>
+                    <span class="text-muted small">{{ tx.date.strftime('%d %b %Y') }}</span>
+                  </td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ tx.description }}</div>
+                  </td>
+                  <td>
+                    <span class="category-pill">
+                      <span class="category-icon-dot" style="background-color: {{ tx.category.color if tx.category else '#6b7280' }};"></span>
+                      {{ tx.category.name if tx.category else 'Other' }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if tx.type == 'income' %}
+                      <span class="badge-income"><i class="bi bi-arrow-down-left me-1"></i> Income</span>
+                    {% else %}
+                      <span class="badge-expense"><i class="bi bi-arrow-up-right me-1"></i> Expense</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end fw-bold {% if tx.type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                    {% if tx.type == 'income' %}+{% else %}-{% endif %}{{ tx.amount | format_currency }}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox fs-3 d-block mb-1"></i>
+                    No transactions recorded yet. <a href="{{ url_for('transactions.add') }}">Add your first transaction</a>
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Budget Status & Next Month AI Prediction -->
+    <div class="col-lg-4">
+      <!-- Budget Card -->
+      <div class="card-custom mb-4">
+        <div class="card-header-custom">
+          <div>
+            <h5>Budget Utilization</h5>
+            <small class="text-muted">Monthly spend tracker</small>
+          </div>
+          <a href="{{ url_for('budgets.index') }}" class="btn btn-sm btn-link p-0 text-decoration-none">Manage</a>
+        </div>
+        <div class="card-body-custom">
+          {% if budget_summary.overall_budget %}
+            {% set b = budget_summary.overall_budget %}
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small text-muted">Spent: <strong>{{ b.spent_amount | format_currency }}</strong></span>
+              <span class="small text-muted">Limit: <strong>{{ b.budget_amount | format_currency }}</strong></span>
+            </div>
+
+            <div class="progress progress-budget mb-2">
+              <div class="progress-bar bg-{{ b.status }}" role="progressbar" style="width: {{ [b.percentage_used, 100] | min }}%"></div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center small">
+              <span class="fw-bold text-{{ b.status }}">{{ b.percentage_used }}% Used</span>
+              <span class="text-muted">{{ b.days_remaining }} days left in month</span>
+            </div>
+
+            <hr class="my-3">
+
+            <div class="p-2 rounded bg-light small">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted">Daily Burn Rate:</span>
+                <strong>{{ b.daily_burn_rate | format_currency }}/day</strong>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">Projected Spend:</span>
+                <strong class="{% if b.projected_total > b.budget_amount %}text-danger{% else %}text-success{% endif %}">
+                  {{ b.projected_total | format_currency }}
+                </strong>
+              </div>
+            </div>
+          {% else %}
+            <div class="text-center py-3 text-muted">
+              <p class="small m-0 mb-2">You haven't set an overall monthly budget yet.</p>
+              <a href="{{ url_for('budgets.index') }}" class="btn btn-outline-primary btn-sm">Set Budget Limit</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- AI Monthly Prediction Preview Card -->
+      <div class="card-custom">
+        <div class="card-header-custom">
+          <div>
+            <h5><i class="bi bi-stars text-primary me-1"></i> AI Forecast</h5>
+            <small class="text-muted">Next month estimate</small>
+          </div>
+          <span class="badge bg-info-subtle text-info border border-info-subtle">Machine Learning</span>
+        </div>
+        <div class="card-body-custom">
+          {% if prediction_summary.has_sufficient_data %}
+            <div class="mb-2">
+              <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.72rem;">Projected for {{ prediction_summary.next_month_label }}</small>
+              <div class="fs-4 fw-bold text-dark">{{ prediction_summary.predicted_total | format_currency }}</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <span class="badge {% if prediction_summary.trend_direction == 'Decreasing' %}bg-success{% elif prediction_summary.trend_direction == 'Increasing' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                Trend: {{ prediction_summary.trend_direction }} ({{ prediction_summary.trend_percent }}%)
+              </span>
+              <small class="text-muted" style="font-size: 0.75rem;">via {{ prediction_summary.method }}</small>
+            </div>
+            <a href="{{ url_for('insights.index') }}" class="btn btn-light w-100 btn-sm text-primary fw-semibold border">
+              View Detailed Forecast Breakdown &rarr;
+            </a>
+          {% else %}
+            <p class="text-muted small m-0">{{ prediction_summary.explanation }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // 1. Cash Flow Bar/Line Chart
+  const sixMonthsLabels = {{ six_months_labels | tojson }};
+  const incomeData = {{ monthly_income_data | tojson }};
+  const expenseData = {{ monthly_expense_data | tojson }};
+
+  const cashFlowCtx = document.getElementById('cashFlowChart');
+  if (cashFlowCtx) {
+    new Chart(cashFlowCtx, {
+      type: 'bar',
+      data: {
+        labels: sixMonthsLabels,
+        datasets: [
+          {
+            label: 'Income (₹)',
+            data: incomeData,
+            backgroundColor: 'rgba(16, 185, 129, 0.75)',
+            borderColor: '#10b981',
+            borderRadius: 6,
+            borderWidth: 1
+          },
+          {
+            label: 'Expense (₹)',
+            data: expenseData,
+            backgroundColor: 'rgba(239, 68, 68, 0.75)',
+            borderColor: '#ef4444',
+            borderRadius: 6,
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 14, font: { family: 'Inter', size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ₹' + Number(context.parsed.y).toLocaleString('en-IN', {minimumFractionDigits: 2});
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) { return '₹' + Number(value).toLocaleString('en-IN'); }
+            },
+            grid: { color: '#f1f5f9' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Category Doughnut Chart
+  const catLabels = {{ category_labels | tojson }};
+  const catData = {{ category_data | tojson }};
+  const catCtx = document.getElementById('categoryChart');
+
+  if (catCtx && catData.length > 0) {
+    const palette = ['#ef4444', '#f97316', '#ec4899', '#3b82f6', '#eab308', '#8b5cf6', '#10b981', '#6b7280', '#06b6d4'];
+    new Chart(catCtx, {
+      type: 'doughnut',
+      data: {
+        labels: catLabels,
+        datasets: [{
+          data: catData,
+          backgroundColor: palette.slice(0, catLabels.length),
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const val = context.parsed;
+                const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                return context.label + ': ₹' + Number(val).toLocaleString('en-IN', {minimumFractionDigits: 2}) + ' (' + pct + '%)';
+              }
+            }
+          }
+        },
+        cutout: '70%'
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

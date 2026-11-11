@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account{% endblock %}
+
+{% block auth_content %}
+<div class="d-flex align-items-center justify-content-center min-vh-100 py-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);">
+  <div class="col-11 col-sm-9 col-md-7 col-lg-5">
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+      <div class="card-body p-4 p-sm-5 bg-white">
+        <!-- Logo / Title -->
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary text-white p-3 mb-3 shadow">
+            <i class="bi bi-wallet2 fs-2"></i>
+          </div>
+          <h4 class="fw-bold text-dark m-0">Create an Account</h4>
+          <p class="text-muted small">Start managing your personal finances intelligently</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            <label class="form-label-custom" for="name">Full Name</label>
+            {{ form.name(class="form-control form-control-custom" + (" is-invalid" if form.name.errors else ""), id="name", placeholder="John Doe") }}
+            {% for error in form.name.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label-custom" for="email">Email Address</label>
+            {{ form.email(class="form-control form-control-custom" + (" is-invalid" if form.email.errors else ""), id="email", placeholder="you@example.com") }}
+            {% for error in form.email.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label-custom" for="password">Password</label>
+              {{ form.password(class="form-control form-control-custom" + (" is-invalid" if form.password.errors else ""), id="password", placeholder="Min 6 chars") }}
+              {% for error in form.password.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label-custom" for="confirm_password">Confirm Password</label>
+              {{ form.confirm_password(class="form-control form-control-custom" + (" is-invalid" if form.confirm_password.errors else ""), id="confirm_password", placeholder="Repeat password") }}
+              {% for error in form.confirm_password.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <small class="text-muted">
+              By creating an account, you agree to local data storage for tracking expenses.
+            </small>
+          </div>
+
+          <button type="submit" class="btn btn-primary-custom w-100 py-2">
+            Register Account <i class="bi bi-person-check ms-1"></i>
+          </button>
+        </form>
+
+        <div class="text-center mt-4 pt-2 border-top">
+          <span class="text-muted small">Already have an account?</span>
+          <a href="{{ url_for('auth.login') }}" class="fw-bold text-primary text-decoration-none small ms-1">Sign in here</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h3 class="fw-bold text-dark m-0">Financial Reports & Analytics</h3>
+      <p class="text-muted small m-0">Detailed spending breakdown, historical trends, and audit summaries</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('reports.export_csv') }}" class="btn btn-primary-custom btn-sm">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Transactions CSV
+      </a>
+    </div>
+  </div>
+
+  <!-- Time Period Filter Tabs -->
+  <div class="card-custom mb-4">
+    <div class="card-body-custom py-2 px-3">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="small fw-semibold text-muted me-2"><i class="bi bi-calendar3 me-1"></i> Period:</span>
+        <a href="{{ url_for('reports.index', period='this_month') }}" class="btn btn-sm {% if period == 'this_month' %}btn-primary{% else %}btn-light border{% endif %}">This Month</a>
+        <a href="{{ url_for('reports.index', period='last_month') }}" class="btn btn-sm {% if period == 'last_month' %}btn-primary{% else %}btn-light border{% endif %}">Last Month</a>
+        <a href="{{ url_for('reports.index', period='last_3_months') }}" class="btn btn-sm {% if period == 'last_3_months' %}btn-primary{% else %}btn-light border{% endif %}">Last 3 Months</a>
+        <a href="{{ url_for('reports.index', period='last_6_months') }}" class="btn btn-sm {% if period == 'last_6_months' %}btn-primary{% else %}btn-light border{% endif %}">Last 6 Months</a>
+        <a href="{{ url_for('reports.index', period='this_year') }}" class="btn btn-sm {% if period == 'this_year' %}btn-primary{% else %}btn-light border{% endif %}">This Year</a>
+        <a href="{{ url_for('reports.index', period='all_time') }}" class="btn btn-sm {% if period == 'all_time' %}btn-primary{% else %}btn-light border{% endif %}">All Time</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-income">
+        <div class="metric-title">Total Inflow</div>
+        <div class="metric-value text-success">+{{ total_income | format_currency }}</div>
+        <div class="metric-subtitle">{{ period_title }}</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-expense">
+        <div class="metric-title">Total Outflow</div>
+        <div class="metric-value text-danger">-{{ total_expense | format_currency }}</div>
+        <div class="metric-subtitle">{{ transaction_count }} transactions logged</div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-savings">
+        <div class="metric-title">Net Savings</div>
+        <div class="metric-value {% if net_savings >= 0 %}text-primary{% else %}text-danger{% endif %}">
+          {{ net_savings | format_currency }}
+        </div>
+        <div class="metric-subtitle">
+          <span class="badge {% if savings_rate >= 20 %}bg-success{% elif savings_rate >= 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+            {{ savings_rate }}% Savings Ratio
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+      <div class="metric-card metric-balance">
+        <div class="metric-title">Average Per Tx</div>
+        <div class="metric-value">
+          {% if transaction_count > 0 %}
+            {{ (total_expense / transaction_count) | format_currency }}
+          {% else %}
+            ₹0.00
+          {% endif %}
+        </div>
+        <div class="metric-subtitle">Mean transaction size</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="row g-4 mb-4">
+    <!-- Category Doughnut -->
+    <div class="col-lg-5">
+      <div class="card-custom h-100">
+        <div class="card-header-custom">
+          <div>
+            <h5>Category Spending Share</h5>
+            <small class="text-muted">{{ period_title }}</small>
+          </div>
+        </div>
+        <div class="card-body-custom d-flex flex-column justify-content-center">
+          {% if pie_data and pie_data | sum > 0 %}
+          <div style="height: 280px; position: relative;">
+            <canvas id="reportCategoryPie"></canvas>
+          </div>
+          {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-pie-chart fs-1 mb-2 d-block"></i>
+            No expense data available for {{ period_title }}.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Trend -->
+    <div class="col-lg-7">
+      <div class="card-custom h-100">
+        <div class="card-header-custom">
+          <div>
+            <h5>Cash Flow Timeline</h5>
+            <small class="text-muted">Daily inflows vs outflows across period</small>
+          </div>
+        </div>
+        <div class="card-body-custom">
+          {% if timeline_labels %}
+          <div style="height: 280px;">
+            <canvas id="timelineChart"></canvas>
+          </div>
+          {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-graph-up fs-1 mb-2 d-block"></i>
+            No timeline records found for this period.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detailed Category Breakdown Table -->
+  <div class="card-custom">
+    <div class="card-header-custom">
+      <div>
+        <h5>Category Expense Analysis</h5>
+        <small class="text-muted">Full breakdown ranked by total spending</small>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-custom align-middle">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Category</th>
+            <th>Transactions</th>
+            <th>Percentage Share</th>
+            <th class="text-end">Total Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if category_summary %}
+            {% for c in category_summary %}
+            <tr>
+              <td class="text-muted fw-bold">#{{ loop.index }}</td>
+              <td>
+                <span class="fw-semibold text-dark">{{ c.name }}</span>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border">{{ c.count }} item{{ 's' if c.count > 1 else '' }}</span>
+              </td>
+              <td style="width: 30%;">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 8px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ c.percentage }}%;"></div>
+                  </div>
+                  <span class="small fw-bold text-muted" style="width: 45px;">{{ c.percentage }}%</span>
+                </div>
+              </td>
+              <td class="text-end fw-bold text-danger">
+                {{ c.amount | format_currency }}
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">
+                No expense data recorded in this period.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // 1. Report Category Pie
+  const pieLabels = {{ pie_labels | tojson }};
+  const pieData = {{ pie_data | tojson }};
+  const pieCtx = document.getElementById('reportCategoryPie');
+
+  if (pieCtx && pieData.length > 0) {
+    const palette = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'];
+    new Chart(pieCtx, {
+      type: 'doughnut',
+      data: {
+        labels: pieLabels,
+        datasets: [{
+          data: pieData,
+          backgroundColor: palette.slice(0, pieLabels.length),
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                return ctx.label + ': ₹' + Number(ctx.parsed).toLocaleString('en-IN', {minimumFractionDigits: 2}) + ' (' + pct + '%)';
+              }
+            }
+          }
+        },
+        cutout: '65%'
+      }
+    });
+  }
+
+  // 2. Timeline Chart
+  const timeLabels = {{ timeline_labels | tojson }};
+  const timeExpense = {{ timeline_expense | tojson }};
+  const timeIncome = {{ timeline_income | tojson }};
+  const timeCtx = document.getElementById('timelineChart');
+
+  if (timeCtx && timeLabels.length > 0) {
+    new Chart(timeCtx, {
+      type: 'line',
+      data: {
+        labels: timeLabels,
+        datasets: [
+          {
+            label: 'Expense (₹)',
+            data: timeExpense,
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2
+          },
+          {
+            label: 'Income (₹)',
+            data: timeIncome,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (val) { return '₹' + Number(val).toLocaleString('en-IN'); }
+            },
+            grid: { color: '#f1f5f9' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
+
